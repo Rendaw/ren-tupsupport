@@ -2,6 +2,8 @@ tup.include 'luatweaks.lua'
 
 --|| Settings
 local Debug = true
+local BuildFlags = ProjectSettings.BuildFlags
+local LinkFlags = ProjectSettings.LinkFlags
 
 --|| Build functions
 local TopLevel = true
@@ -72,10 +74,10 @@ function Executable(Arguments)
 		if Debug
 		then
 			Command = 'g++ -Wall -Werror -pedantic -O0 -ggdb ' .. 
-				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ')
+				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. LinkFlags
 		else
 			Command = 'g++ -Wall -Werror -pedantic -O3 ' .. 
-				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ')
+				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. LinkFlags
 		end
 		tup.definerule{inputs = Inputs, outputs = {Output}, command = Command}
 	end
