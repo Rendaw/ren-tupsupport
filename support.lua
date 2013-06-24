@@ -2,8 +2,6 @@ tup.include 'luatweaks.lua'
 
 --|| Settings
 local Debug = true
-local BuildFlags = ProjectSettings.BuildFlags
-local LinkFlags = ProjectSettings.LinkFlags
 
 --|| Build functions
 local TopLevel = true
@@ -50,10 +48,13 @@ function Object(Arguments)
 		if Debug
 		then
 			Command = 'g++-4.8 -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O0 -ggdb ' .. 
-				'-o ' .. Output .. ' ' .. Arguments.Source
+				'-o ' .. Output .. ' ' .. Arguments.Source ..
+				(ProjectSettings.BuildFlags or '') .. (Arguments.BuildFlags or '')
+
 		else
 			Command = 'g++-4.8 -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O3 ' .. 
 				'-o ' .. Output .. ' ' .. Arguments.Source
+				(ProjectSettings.BuildFlags or '') .. (Arguments.BuildFlags or '')
 		end
 		tup.definerule{inputs = {Arguments.Source}, outputs = {Output}, command = Command}
 	end
@@ -74,10 +75,12 @@ function Executable(Arguments)
 		if Debug
 		then
 			Command = 'g++ -Wall -Werror -pedantic -O0 -ggdb ' .. 
-				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. LinkFlags
+				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. 
+				(ProjectSettings.LinkFlags or '') .. (Arguments.LinkFlags or '')
 		else
 			Command = 'g++ -Wall -Werror -pedantic -O3 ' .. 
-				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. LinkFlags
+				'-o ' .. Output .. ' ' .. table.concat(Inputs, ' ') .. 
+				(ProjectSettings.LinkFlags or '') .. (Arguments.LinkFlags or '')
 		end
 		tup.definerule{inputs = Inputs, outputs = {Output}, command = Command}
 	end
