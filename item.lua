@@ -1,3 +1,21 @@
+-- Deferred data
+local ItemMetatable = {}
+function Item(Argument)
+	local Out = { Methods = Methods }
+	setmetatable(Out, ItemMetatable)
+	if Argument then Out = Out:Include(Argument) end
+	return Out
+end
+local ExtendItem = function(Method, Data, Parent)
+	local Instance = { Method = Method, Data = Data, Parent = Parent }
+	setmetatable(Instance, getmetatable(Parent))
+	return Instance
+end
+ItemMetatable.__newindex = function(Instance, Index, Value)
+	error('Can only defer method calls.')
+end
+
+-- Realized methods
 local ProcessFileString = function(FileString)
 	local Out = {}
 	if FileString:match('%*') or FileString:match('%?') or FileString:match('%[.*%]') 
@@ -11,11 +29,9 @@ local ProcessFileString = function(FileString)
 	end 
 	return Out
 end
-local ItemMethods = { Access = {} } 
-ItemMethods.Initialize = function()
-	return { Include = {}, Exclude = {} }
-end
-ItemMethods.Access.Include = function(Aggregate, Data)
+
+local Methods = {}
+Methods.Include = function(Aggregate, Data)
 	if type(Data) == 'table'
 	then
 		if Data.Form
@@ -25,13 +41,8 @@ ItemMethods.Access.Include = function(Aggregate, Data)
 				Aggregate.Include[#Aggregate.Include + 1] = Element
 			end
 		else
-			for Index, String in ipairs(Data)
-			do
-				for Index, Element in ipairs(ProcessFileString(String))
-				do
-					Aggregate.Include[#Aggregate.Include + 1] = Element
-				end
-			end
+			if not Data.Filename then error 'Including invalid element.' end
+			Aggregate.Include[#Aggregate.Include + 1] = Data
 		end
 	else
 		for Index, Element in ipairs(ProcessFileString(Data))
@@ -41,7 +52,7 @@ ItemMethods.Access.Include = function(Aggregate, Data)
 	end
 	return Aggregate
 end
-ItemMethods.Access.Exclude = function(Aggregate, Data)
+Methods.Exclude = function(Aggregate, Data)
 	if type(Data) == 'table' 
 	then
 		if Data.Form
@@ -51,13 +62,8 @@ ItemMethods.Access.Exclude = function(Aggregate, Data)
 				Aggregate.Exclude[Element.Filename] = true
 			end
 		else
-			for Index, String in ipairs(Data)
-			do
-				for Index, Element in ipairs(ProcessFileString(String))
-				do
-					Aggregate.Exclude[Element] = true
-				end
-			end
+			if not Data.Filename then error 'Excluding invalid element.' end
+			Aggregate.Exclude[Data.Filename] = true
 		end
 	else
 		for Index, Element in ipairs(ProcessFileString(Data))
@@ -67,19 +73,16 @@ ItemMethods.Access.Exclude = function(Aggregate, Data)
 	end
 	return Aggregate
 end
-ItemMethods.Concatenate = function(This, That)
-	local ThisAndThat = {This, That}
-	local Strings = {}
-	for Index, Which in ipairs(ThisAndThat)
-	do
-		if type(Which) == 'table' and Which.Filename 
-		then
-			Strings[Index] = Which.Filename
-		else 
-			Strings[Index] = tostring(Which)
-		end
-	end
-	return table.concat(Strings, '')
+
+-- Realization
+local GetMethods
+GetMethods = function(Instance)
+	return rawget(Instance, 'Methods') or GetMethods(rawget(Instance, 'Parent'))
+end
+local RealizeRecurse
+RealizeRecurse = function(Instance, Out)
+	if not rawget(Instance, 'Parent') or not rawget(Instance, 'Method') or not rawget(Instance, 'Data') then return Out end
+	return RealizeRecurse(Instance.Parent, Methods[Instance.Method](Out, Instance.Data))
 end
 local ItemFinalMetatable =
 {
@@ -97,7 +100,9 @@ local ItemFinalMetatable =
 		end
 	}
 }
-ItemMethods.Finalize = function(Aggregate)
+local Realize = function(Instance, Arguments)
+	local Aggregate = { Include = {}, Exclude = {} }
+	Aggregate = RealizeRecurse(Instance, Aggregate)
 	local Out = {}
 	setmetatable(Out, ItemFinalMetatable)
 	for Index, Element in ipairs(Aggregate.Include)
@@ -109,43 +114,28 @@ ItemMethods.Finalize = function(Aggregate)
 	end
 	return Out
 end
-ItemMethods.ToString = function(Aggregate)
+ItemMetatable.__tostring = function(Instance)
+	return tostring(Realize(Instance))
 end
 
--- Preparsing arguments to qualify with directory path
-local Qualify = function(FileString)
-	return (not IsTopLevel()) and (tup.getcwd() .. '/' .. FileString) or FileString
-end
-local ItemMetatable = {}
-local DeferredMetatable = getmetatable(Deferred({}))
-ItemMetatable.__tostring = DeferredMetatable.__tostring
+-- Deferral
 ItemMetatable.__index = function(Instance, Index)
-	local DeferredIndex = DeferredMetatable.__index(Instance, Index)
+	if Index == 'Form' then return Realize end
 	return function(Instance, Argument)
-		if type(Argument) == 'table' 
+		if type(Argument) ~= 'table'
 		then
-			if not Argument.Form
-			then
-				local NewArgument = {}
-				for Index, String in ipairs(Argument)
-				do
-					NewArgument[#NewArgument + 1] = Qualify(String)
-				end
-				Argument = NewArgument
-			end
-		else
-			Argument = Qualify(Argument)
+			Argument = (not IsTopLevel()) and (tup.getcwd() .. '/' .. Argument) or Argument
 		end
-		return DeferredIndex(Instance, Argument)
+		return ExtendItem(Index, Argument, Instance)
 	end
-
 end
-
--- Item construction
-function Item(Argument)
-	local Out = Deferred(ItemMethods)
-	setmetatable(Out, ItemMetatable)
-	if Argument then Out = Out:Include(Argument) end
-	return Out
+ItemMetatable.__concat = function(Instance, Other)
+	if type(Instance) == 'table' and Instance.Form
+	then
+		return ExtendItem('Include', Other, Instance)
+	elseif type(Other) == 'table' and Other.Form
+	then
+		return ExtendItem('Include', Instance, Other)
+	end
 end
 

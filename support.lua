@@ -1,6 +1,3 @@
--- TODO Form()->Form()
---
-
 tup.include 'luatweaks.lua'
 
 local TopLevel = true
@@ -15,9 +12,9 @@ function DoOnce(RootedFilename)
 	TopLevel = true
 end
 
-tup.include 'deferred.lua'
+tup.include 'mask.lua'
 tup.include 'item.lua'
-tup.include 'deferredfunction.lua'
+tup.include 'target.lua'
 
 --|| Settings
 local Debug = true
@@ -27,8 +24,19 @@ local Debug = true
 
 Define = {}
 
-Define.Object = DeferredFunction(function(Arguments)
-	Arguments = FinishArguments(Arguments)
+Define.Lua = Target(function(Arguments)
+	if TopLevel
+	then
+		tup.definerule
+		{
+			outputs = {Arguments.Out},
+			command = 'lua ' .. Arguments.Script
+		}
+	end
+	return Item(Arguments.Out)
+end)
+
+Define.Object = Target(function(Arguments)
 	local Source = tostring(Arguments.Source)
 	local Output = tup.base(Source) .. '.o'
 	if TopLevel 
@@ -45,47 +53,46 @@ Define.Object = DeferredFunction(function(Arguments)
 				'-o ' .. Output .. ' ' .. Source
 				' ' .. (Arguments.BuildFlags or '')
 		end
-		tup.definerule{inputs = {Source}, outputs = {Output}, command = Command}
+		local Inputs = Arguments.Source:Include(Arguments.BuildExtras):Form():Extract('Filename')
+		tup.definerule{inputs = Inputs, outputs = {Output}, command = Command}
 	end
 	return Item(Output)
 end)
 
-Define.Objects = DeferredFunction(function(Arguments)
-	local Sources = FinishArguments(Arguments).Sources:Form()
+Define.Objects = Target(function(Arguments)
+	local Sources = Arguments.Sources:Form()
 	local Outputs = Item()
 	for Index, Source in ipairs(Sources)
 	do
-		Outputs = Outputs:Include(Arguments:Source(Item(Source.Filename)):Form(Define.Object()):Form())
+		Outputs = Outputs:Include(Define.Object(Mask({Source = Item(Source)}, Arguments)))
 	end
 	return Outputs
 end)
 
-Define.Executable = DeferredFunction(function(Arguments)
-	FinishedArguments = FinishArguments(Arguments)
-	local Output = FinishedArguments.Name
+Define.Executable = Target(function(Arguments)
+	local Output = Arguments.Name
 	if TopLevel 
 	then
-		local Inputs = Arguments:Form(Define.Objects()):Form()
-		if FinishedArguments.Objects then Inputs = Inputs:Include(FinishedArguments.Objects) end
+		local Inputs = Define.Objects(Arguments)
+		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
 		Inputs = Inputs:Form()
 		local Command
 		if Debug
 		then
 			Command = 'g++ -Wall -Werror -pedantic -O0 -ggdb ' .. 
 				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
-				' ' .. (FinishedArguments.LinkFlags or '')
+				' ' .. (Arguments.LinkFlags or '')
 		else
 			Command = 'g++ -Wall -Werror -pedantic -O3 ' .. 
 				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
-				' ' .. (FinishedArguments.LinkFlags or '')
+				' ' .. (Arguments.LinkFlags or '')
 		end
 		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
 	end
 	return Item(Output)
 end)
 
-Define.Test = DeferredFunction(function(Arguments)
-	Arguments = FinishArguments(Arguments)
+Define.Test = Target(function(Arguments)
 	local Output = tostring(Arguments.Executable) .. '.results.txt'
 	if TopLevel
 	then
