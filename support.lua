@@ -7,9 +7,10 @@ local Root = tup.getcwd()
 function DoOnce(RootedFilename)
 	if IncludedFiles[RootedFilename] then return end
 	IncludedFiles[RootedFilename] = true
+	local OldTopLevel = TopLevel
 	TopLevel = false
 	tup.include(Root .. '/../' .. RootedFilename)
-	TopLevel = true
+	TopLevel = OldTopLevel
 end
 
 tup.include 'mask.lua'
@@ -27,13 +28,16 @@ Define = {}
 Define.Lua = Target(function(Arguments)
 	if TopLevel
 	then
+		local Inputs = Item(Arguments.Script)
+		if Arguments.Inputs then Inputs = Inputs:Include(Arguments.Inputs) end
 		tup.definerule
 		{
-			outputs = {Arguments.Out},
-			command = 'lua ' .. Arguments.Script
+			inputs = Inputs:Form():Extract('Filename'),
+			outputs = Arguments.Outputs:Form():Extract('Filename'),
+			command = 'lua ' .. Arguments.Script .. ' ' .. (Arguments.Arguments or '')
 		}
 	end
-	return Item(Arguments.Out)
+	return Arguments.Outputs
 end)
 
 Define.Object = Target(function(Arguments)
