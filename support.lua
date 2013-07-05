@@ -3,7 +3,7 @@ tup.include 'luatweaks.lua'
 local TopLevel = true
 function IsTopLevel() return TopLevel end
 local IncludedFiles = {}
-local Root = tup.getcwd()
+local Root = tup.nodevariable('.')
 function DoOnce(RootedFilename)
 	if IncludedFiles[RootedFilename] then return end
 	IncludedFiles[RootedFilename] = true
@@ -18,7 +18,7 @@ tup.include 'item.lua'
 tup.include 'target.lua'
 
 --|| Settings
-local Debug = true
+local Debug = tup.getconfig('DEBUG') ~= 'false'
 
 --|| Build functions
 -- All definition function inputs and outputs are items
@@ -48,13 +48,13 @@ Define.Object = Target(function(Arguments)
 		local Command
 		if Debug
 		then
-			Command = 'g++ -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O0 -ggdb ' .. 
+			Command = tup.getconfig('COMPILERBIN') ..' -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O0 -ggdb ' .. 
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 
 		else
-			Command = 'g++ -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O3 ' .. 
-				'-o ' .. Output .. ' ' .. Source
+			Command = tup.getconfig('COMPILERBIN') .. ' -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O3 ' .. 
+				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 		end
 		local Inputs = Arguments.Source:Include(Arguments.BuildExtras):Form():Extract('Filename')
@@ -83,11 +83,11 @@ Define.Executable = Target(function(Arguments)
 		local Command
 		if Debug
 		then
-			Command = 'g++ -Wall -Werror -pedantic -O0 -ggdb ' .. 
+			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' .. 
 				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
 				' ' .. (Arguments.LinkFlags or '')
 		else
-			Command = 'g++ -Wall -Werror -pedantic -O3 ' .. 
+			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O3 ' .. 
 				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
 				' ' .. (Arguments.LinkFlags or '')
 		end
