@@ -20,6 +20,12 @@ tup.include 'target.lua'
 --|| Settings
 local Debug = tup.getconfig('DEBUG') ~= 'false'
 
+local BuildFlags = '-std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs'
+if tup.getconfig 'PLATFORM' == 'windows'
+then
+	BuildFlags = BuildFlags .. ' -DWINDOWS'
+end
+
 --|| Build functions
 -- All definition function inputs and outputs are items
 
@@ -48,12 +54,12 @@ Define.Object = Target(function(Arguments)
 		local Command
 		if Debug
 		then
-			Command = tup.getconfig('COMPILERBIN') ..' -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O0 -ggdb ' .. 
+			Command = tup.getconfig('COMPILERBIN') ..' -c ' .. BuildFlags .. ' -O0 -ggdb ' .. 
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 
 		else
-			Command = tup.getconfig('COMPILERBIN') .. ' -c -std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs -O3 ' .. 
+			Command = tup.getconfig('COMPILERBIN') .. ' -c ' .. BuildFlags .. ' -O3 ' .. 
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 		end
@@ -75,6 +81,10 @@ end)
 
 Define.Executable = Target(function(Arguments)
 	local Output = Arguments.Name
+	if tup.getconfig 'PLATFORM' == 'windows'
+	then
+		Output = Output .. '.exe'
+	end
 	if TopLevel 
 	then
 		local Inputs = Define.Objects(Arguments)
