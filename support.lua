@@ -107,10 +107,18 @@ Define.Executable = Target(function(Arguments)
 end)
 
 Define.Test = Target(function(Arguments)
-	local Output = tostring(Arguments.Executable) .. '.results.txt'
+	local Executable = tostring(Arguments.Executable:Form())
+	local Output = Executable .. '.results.txt'
 	if TopLevel
 	then
-		tup.definerule{inputs = {Arguments.Executable}, outputs = {Output}, command = './' .. Arguments.Executable .. ' > ' .. Output}
+		local Inputs = Arguments.Executable
+		if Arguments.Inputs then Inputs = Inputs:Include(Arguments.Inputs) end
+		tup.definerule
+		{
+			inputs = Inputs:Form():Extract('Filename'),
+			outputs = {Output},
+			command = './' .. Executable .. ' ' .. (Arguments.Arguments or '') .. ' 2>&1 > ' .. Output
+		}
 	end
 	return Item(Output)
 end)
