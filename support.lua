@@ -20,7 +20,11 @@ tup.include 'target.lua'
 --|| Settings
 local Debug = tup.getconfig('DEBUG') ~= 'false'
 
-local BuildFlags = '-std=c++11 -Wall -Werror -pedantic -Wno-unused-local-typedefs'
+local BuildFlags = '-std=c++11 -Wall -Werror -pedantic'
+if tup.getconfig 'COMPILER' == 'clang++' then
+else
+	BuildFlags = BuildFlags .. ' -Wno-unused-local-typedefs'
+end
 if tup.getconfig 'PLATFORM' == 'windows'
 then
 	BuildFlags = BuildFlags .. ' -DWINDOWS'
