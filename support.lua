@@ -20,8 +20,9 @@ tup.include 'target.lua'
 --|| Settings
 local Debug = tup.getconfig('DEBUG') ~= 'false'
 
-local BuildFlags = '-std=c++11 -Wall -Werror -pedantic'
+local BuildFlags = '-std=c++11 -Wall -pedantic -Wconversion'
 if tup.getconfig 'COMPILER' == 'clang++' then
+	BuildFlags = BuildFlags .. ' -Werror'
 else
 	BuildFlags = BuildFlags .. ' -Wno-unused-local-typedefs'
 end
@@ -53,17 +54,17 @@ end)
 Define.Object = Target(function(Arguments)
 	local Source = tostring(Arguments.Source)
 	local Output = tup.base(Source) .. '.o'
-	if TopLevel 
+	if TopLevel
 	then
 		local Command
 		if Debug
 		then
-			Command = tup.getconfig('COMPILERBIN') ..' -c ' .. BuildFlags .. ' -O0 -ggdb ' .. 
+			Command = tup.getconfig('COMPILERBIN') ..' -c ' .. BuildFlags .. ' -O0 -ggdb ' ..
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 
 		else
-			Command = tup.getconfig('COMPILERBIN') .. ' -c ' .. BuildFlags .. ' -O3 ' .. 
+			Command = tup.getconfig('COMPILERBIN') .. ' -c ' .. BuildFlags .. ' -O3 ' ..
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 		end
@@ -89,7 +90,7 @@ Define.Executable = Target(function(Arguments)
 	then
 		Output = Output .. '.exe'
 	end
-	if TopLevel 
+	if TopLevel
 	then
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
@@ -97,12 +98,12 @@ Define.Executable = Target(function(Arguments)
 		local Command
 		if Debug
 		then
-			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' .. 
-				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
+			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' ..
+				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
 				' ' .. (Arguments.LinkFlags or '')
 		else
-			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O3 ' .. 
-				'-o ' .. Output .. ' ' .. tostring(Inputs) .. 
+			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O3 ' ..
+				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
 				' ' .. (Arguments.LinkFlags or '')
 		end
 		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
