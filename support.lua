@@ -51,6 +51,21 @@ Define.Lua = Target(function(Arguments)
 	return Arguments.Outputs
 end)
 
+Define.Raw = Target(function(Arguments)
+	if TopLevel
+	then
+		local Inputs = Arguments.Inputs or Item()
+		local Outputs = Arguments.Outputs or Item()
+		tup.definerule
+		{
+			inputs = Inputs:Form():Extract('Filename'),
+			outputs = Arguments.Outputs:Form():Extract('Filename'),
+			command = Arguments.Command
+		}
+	end
+	return Arguments.Outputs
+end)
+
 Define.Object = Target(function(Arguments)
 	local Source = tostring(Arguments.Source)
 	local Output = tup.base(Source) .. '.o'
@@ -59,16 +74,20 @@ Define.Object = Target(function(Arguments)
 		local Command
 		if Debug
 		then
-			Command = tup.getconfig('COMPILERBIN') ..' -c ' .. BuildFlags .. ' -O0 -ggdb ' ..
+			Command = tup.getconfig('COMPILERBIN') ..' -c ' ..
+				BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') .. ' -O0 -ggdb ' ..
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 
 		else
-			Command = tup.getconfig('COMPILERBIN') .. ' -c ' .. BuildFlags .. ' -O3 ' ..
+			Command = tup.getconfig('COMPILERBIN') .. ' -c ' ..
+				BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') .. ' -O3 ' ..
 				'-o ' .. Output .. ' ' .. Source ..
 				' ' .. (Arguments.BuildFlags or '')
 		end
-		local Inputs = Arguments.Source:Include(Arguments.BuildExtras):Form():Extract('Filename')
+		local Inputs = Arguments.Source
+		if Arguments.BuildExtras then Inputs = Inputs:Include(Arguments.BuildExtras) end
+		Inputs = Inputs:Form():Extract('Filename')
 		tup.definerule{inputs = Inputs, outputs = {Output}, command = Command}
 	end
 	return Item(Output)
@@ -100,11 +119,11 @@ Define.Executable = Target(function(Arguments)
 		then
 			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' ..
 				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
-				' ' .. (Arguments.LinkFlags or '')
+				' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
 		else
 			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O3 ' ..
 				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
-				' ' .. (Arguments.LinkFlags or '')
+				' ' .. (Arguments.LinkFlags or '') ..  ' ' .. tup.getconfig('LINKFLAGS')
 		end
 		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
 	end

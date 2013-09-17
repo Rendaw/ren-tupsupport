@@ -18,15 +18,15 @@ end
 -- Realized methods
 local ProcessFileString = function(FileString)
 	local Out = {}
-	if FileString:match('%*') or FileString:match('%?') or FileString:match('%[.*%]') 
+	if FileString:match('%*') or FileString:match('%?') or FileString:match('%[.*%]')
 	then
-		for Index, File in ipairs(tup.glob(FileString)) 
+		for Index, File in ipairs(tup.glob(FileString))
 		do
 			Out[#Out + 1] = {Filename = File}
 		end
 	else
 		Out[#Out + 1] = {Filename = FileString}
-	end 
+	end
 	return Out
 end
 
@@ -53,7 +53,7 @@ Methods.Include = function(Aggregate, Data)
 	return Aggregate
 end
 Methods.Exclude = function(Aggregate, Data)
-	if type(Data) == 'table' 
+	if type(Data) == 'table'
 	then
 		if Data.Form
 		then
@@ -107,8 +107,8 @@ local Realize = function(Instance, Arguments)
 	setmetatable(Out, ItemFinalMetatable)
 	for Index, Element in ipairs(Aggregate.Include)
 	do
-		if not Aggregate.Exclude[Element.Filename] 
-		then 
+		if not Aggregate.Exclude[Element.Filename]
+		then
 			Out[#Out + 1] = Element
 		end
 	end
@@ -122,6 +122,7 @@ end
 ItemMetatable.__index = function(Instance, Index)
 	if Index == 'Form' then return Realize end
 	return function(Instance, Argument)
+		if not Argument then error('Invalid argument to ' .. Index) end
 		if type(Argument) ~= 'table'
 		then
 			Argument = (not IsTopLevel()) and (tup.getcwd() .. '/' .. Argument) or Argument
@@ -130,6 +131,7 @@ ItemMetatable.__index = function(Instance, Index)
 	end
 end
 ItemMetatable.__concat = function(Instance, Other)
+	if not Other then error 'Invalid argument in concat' end
 	if type(Instance) == 'table' and Instance.Form
 	then
 		return ExtendItem('Include', Other, Instance)
