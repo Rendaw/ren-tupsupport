@@ -9,6 +9,7 @@ CONFIG_COMPILER=g++
 
 # g++, g++-4.8, cl.exe..
 CONFIG_COMPILERBIN=g++
+CONFIG_CCOMPILERBIN=gcc
 
 # g++, link.exe...
 CONFIG_LINKERBIN=g++

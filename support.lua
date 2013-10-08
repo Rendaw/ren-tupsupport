@@ -20,7 +20,9 @@ tup.include 'target.lua'
 --|| Settings
 local Debug = tup.getconfig('DEBUG') ~= 'false'
 
-local BuildFlags = '-std=c++11 -Wall -pedantic -Wconversion'
+local CXXBuildFlags = ' -std=c++11'
+local CBuildFlags = ''
+local BuildFlags = ' -Wall -pedantic -Wconversion'
 if tup.getconfig 'COMPILER' == 'clang++' then
 	BuildFlags = BuildFlags .. ' -Werror'
 else
@@ -71,20 +73,15 @@ Define.Object = Target(function(Arguments)
 	local Output = tup.base(Source) .. '.o'
 	if TopLevel
 	then
-		local Command
-		if Debug
-		then
-			Command = tup.getconfig('COMPILERBIN') ..' -c ' ..
-				BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') .. ' -O0 -ggdb ' ..
-				'-o ' .. Output .. ' ' .. Source ..
-				' ' .. (Arguments.BuildFlags or '')
-
-		else
-			Command = tup.getconfig('COMPILERBIN') .. ' -c ' ..
-				BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') .. ' -O3 ' ..
-				'-o ' .. Output .. ' ' .. Source ..
-				' ' .. (Arguments.BuildFlags or '')
-		end
+		local IsC = Source:match('%.c$')
+		local UseBuildFlags =
+			(IsC and CBuildFlags or CXXBuildFlags) ..
+			BuildFlags .. tup.getconfig('BUILDFLAGS') ..
+			(Debug and ' -O0 -ggdb' or ' -O3')
+		local Command = 
+			(IsC and tup.getconfig('CCOMPILERBIN') or tup.getconfig('COMPILERBIN')) ..
+			UseBuildFlags .. ' -c -o ' .. Output .. ' ' .. Source ..
+			' ' .. (Arguments.BuildFlags or '')
 		local Inputs = Arguments.Source
 		if Arguments.BuildExtras then Inputs = Inputs:Include(Arguments.BuildExtras) end
 		Inputs = Inputs:Form():Extract('Filename')
