@@ -76,7 +76,7 @@ Define.Object = Target(function(Arguments)
 		local IsC = Source:match('%.c$')
 		local UseBuildFlags =
 			(IsC and CBuildFlags or CXXBuildFlags) ..
-			BuildFlags .. tup.getconfig('BUILDFLAGS') ..
+			BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') ..
 			(Debug and ' -O0 -ggdb' or ' -O3')
 		local Command = 
 			(IsC and tup.getconfig('CCOMPILERBIN') or tup.getconfig('COMPILERBIN')) ..
