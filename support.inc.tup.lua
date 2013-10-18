@@ -1,24 +1,33 @@
-tup.include 'luatweaks.lua'
+tup.include '../info.inc.lua'
 
-local TopLevel = true
-function IsTopLevel() return TopLevel end
-local IncludedFiles = {}
-local Root = tup.nodevariable('.')
-function DoOnce(RootedFilename)
-	if IncludedFiles[RootedFilename] then return end
-	IncludedFiles[RootedFilename] = true
-	local OldTopLevel = TopLevel
-	TopLevel = false
-	tup.include(Root .. '/../' .. RootedFilename)
-	TopLevel = OldTopLevel
+tup.include 'luatweaks.inc.tup.lua'
+tup.include 'mask.inc.tup.lua'
+tup.include 'item.inc.tup.lua'
+tup.include 'target.inc.tup.lua'
+
+do
+	local TopLevel = true
+	function IsTopLevel() return TopLevel end
+
+	local OldInclude = tup.include
+	tup.include = nil
+	local IncludedFiles = {}
+	local Root = tup.nodevariable('.')
+	function DoOnce(RootedFilename)
+		if IncludedFiles[RootedFilename] then return end
+		IncludedFiles[RootedFilename] = true
+		local OldTopLevel = TopLevel
+		TopLevel = false
+		OldInclude(Root .. '/../' .. RootedFilename)
+		TopLevel = OldTopLevel
+	end
 end
 
-tup.include 'mask.lua'
-tup.include 'item.lua'
-tup.include 'target.lua'
-
 --|| Settings
-local Debug = tup.getconfig('DEBUG') ~= 'false'
+do
+	local Debug = tup.getconfig('DEBUG') ~= 'false'
+	function IsDebug() return Debug end
+end
 
 local CXXBuildFlags = ' -std=c++11'
 local CBuildFlags = ''
@@ -30,7 +39,17 @@ else
 end
 if tup.getconfig 'PLATFORM' == 'windows'
 then
-	BuildFlags = BuildFlags .. ' -DWINDOWS'
+	BuildFlags = BuildFlags ..
+		' -DWINDOWS' ..
+		' \'-DRESOURCELOCATION="."\''
+elseif (tup.getconfig 'PLATFORM' == 'arch64') or
+	(tup.getconfig 'PLATFORM' == 'ubuntu12') or
+	(tup.getconfig 'PLATFORM' == 'ubuntu12_64')
+then
+	if IsDebug()
+	then BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="."\''
+	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. Info.PackageName .. '"\''
+	end
 end
 
 --|| Build functions
@@ -39,7 +58,7 @@ end
 Define = {}
 
 Define.Lua = Target(function(Arguments)
-	if TopLevel
+	if IsTopLevel()
 	then
 		local Inputs = Item(Arguments.Script)
 		if Arguments.Inputs then Inputs = Inputs:Include(Arguments.Inputs) end
@@ -54,7 +73,7 @@ Define.Lua = Target(function(Arguments)
 end)
 
 Define.Raw = Target(function(Arguments)
-	if TopLevel
+	if IsTopLevel()
 	then
 		local Inputs = Arguments.Inputs or Item()
 		local Outputs = Arguments.Outputs or Item()
@@ -71,14 +90,14 @@ end)
 Define.Object = Target(function(Arguments)
 	local Source = tostring(Arguments.Source)
 	local Output = tup.base(Source) .. '.o'
-	if TopLevel
+	if IsTopLevel()
 	then
 		local IsC = Source:match('%.c$')
 		local UseBuildFlags =
 			(IsC and CBuildFlags or CXXBuildFlags) ..
 			BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') ..
-			(Debug and ' -O0 -ggdb' or ' -O3')
-		local Command = 
+			(IsDebug() and ' -O0 -ggdb' or ' -O3')
+		local Command =
 			(IsC and tup.getconfig('CCOMPILERBIN') or tup.getconfig('COMPILERBIN')) ..
 			UseBuildFlags .. ' -c -o ' .. Output .. ' ' .. Source ..
 			' ' .. (Arguments.BuildFlags or '')
@@ -106,13 +125,13 @@ Define.Executable = Target(function(Arguments)
 	then
 		Output = Output .. '.exe'
 	end
-	if TopLevel
+	if IsTopLevel()
 	then
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
 		Inputs = Inputs:Form()
 		local Command
-		if Debug
+		if IsDebug()
 		then
 			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' ..
 				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
@@ -130,7 +149,7 @@ end)
 Define.Test = Target(function(Arguments)
 	local Executable = tostring(Arguments.Executable:Form())
 	local Output = Executable .. '.results.txt'
-	if TopLevel
+	if IsTopLevel()
 	then
 		local Inputs = Arguments.Executable
 		if Arguments.Inputs then Inputs = Inputs:Include(Arguments.Inputs) end

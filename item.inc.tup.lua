@@ -10,12 +10,17 @@ local Methods = {}
 function Item(Argument)
 	local Out = { Methods = Methods }
 	setmetatable(Out, ItemMetatable)
-	if Argument then Out = Out:Include(Argument) end
+	if Argument then Out = Out + Argument end
 	return Out
 end
 
 -- 2. Assembly
 local ExtendItem = function(Method, Data, Parent)
+	if not Data then error('Invalid argument') end
+	if type(Data) ~= 'table'
+	then
+		Data = (not IsTopLevel()) and (tup.getcwd() .. '/' .. tostring(Data)) or tostring(Data)
+	end
 	local Instance = { Method = Method, Data = Data, Parent = Parent }
 	setmetatable(Instance, getmetatable(Parent))
 	return Instance
@@ -26,11 +31,6 @@ end
 ItemMetatable.__index = function(Instance, Index)
 	if Index == 'Form' then return Realize end
 	return function(Instance, Argument)
-		if not Argument then error('Invalid argument to ' .. Index) end
-		if type(Argument) ~= 'table'
-		then
-			Argument = (not IsTopLevel()) and (tup.getcwd() .. '/' .. Argument) or Argument
-		end
 		return ExtendItem(Index, Argument, Instance)
 	end
 end
@@ -110,19 +110,14 @@ Methods.Include = function(Aggregate, Data)
 		if Data.Form
 		then
 			for Index, Element in ipairs(Data:Form())
-			do
-				Aggregate.Include[#Aggregate.Include + 1] = Element
-			end
+				do Aggregate.Include[#Aggregate.Include + 1] = Element end
 		else
 			if not Data.Filename then error 'Including invalid element.' end
 			Aggregate.Include[#Aggregate.Include + 1] = Data
 		end
 	else
-		Data = tostring(Data)
 		for Index, Element in ipairs(ProcessFileString(Data))
-		do
-			Aggregate.Include[#Aggregate.Include + 1] = Element
-		end
+			do Aggregate.Include[#Aggregate.Include + 1] = Element end
 	end
 	return Aggregate
 end
