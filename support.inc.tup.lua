@@ -46,8 +46,8 @@ then
 		' -DWINDOWS' ..
 		' \'-DRESOURCELOCATION="."\''
 elseif (tup.getconfig 'PLATFORM' == 'arch64') or
-	(tup.getconfig 'PLATFORM' == 'ubuntu12') or
-	(tup.getconfig 'PLATFORM' == 'ubuntu12_64')
+	(tup.getconfig 'PLATFORM' == 'ubuntu') or
+	(tup.getconfig 'PLATFORM' == 'ubuntu64')
 then
 	if IsDebug()
 	then BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="."\''
