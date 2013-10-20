@@ -34,8 +34,8 @@ if tup.getconfig 'PLATFORM' ~= 'windows'
 
 local CXXBuildFlags = ' -std=c++11'
 local CBuildFlags = ''
-local BuildFlags = ' -Wall -pedantic -Wconversion'
-if tup.getconfig 'COMPILER' == 'clang++' then
+local BuildFlags = ' -Wall -pedantic'
+if tup.getconfig 'COMPILER' == 'clang' then
 	BuildFlags = BuildFlags .. ' -Werror'
 else
 	BuildFlags = BuildFlags .. ' -Wno-unused-local-typedefs'
