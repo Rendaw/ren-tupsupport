@@ -29,6 +29,9 @@ do
 	function IsDebug() return Debug end
 end
 
+if tup.getconfig 'PLATFORM' ~= 'windows'
+       then tup.export 'LD_LIBRARY_PATH' end
+
 local CXXBuildFlags = ' -std=c++11'
 local CBuildFlags = ''
 local BuildFlags = ' -Wall -pedantic -Wconversion'
