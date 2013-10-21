@@ -35,6 +35,7 @@ if tup.getconfig 'PLATFORM' ~= 'windows'
 local CXXBuildFlags = ' -std=c++11'
 local CBuildFlags = ''
 local BuildFlags = ' -Wall -pedantic'
+local LinkFlags = ' -Wall -Werror -pedantic'
 if tup.getconfig 'COMPILER' == 'clang' then
 	BuildFlags = BuildFlags .. ' -Werror'
 else
@@ -53,6 +54,14 @@ then
 	then BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="."\''
 	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. Info.PackageName .. '"\''
 	end
+end
+if IsDebug()
+then 
+	BuildFlags = BuildFlags .. ' -O0 -ggdb'
+	LinkFlags = LinkFlags .. ' -O0 -ggdb'
+else 
+	BuildFlags = BuildFlags .. ' -O3 -DNDEBUG'
+	LinkFlags = LinkFlags .. ' -O3'
 end
 
 --|| Build functions
@@ -98,8 +107,7 @@ Define.Object = Target(function(Arguments)
 		local IsC = Source:match('%.c$')
 		local UseBuildFlags =
 			(IsC and CBuildFlags or CXXBuildFlags) ..
-			BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS') ..
-			(IsDebug() and ' -O0 -ggdb' or ' -O3')
+			BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS')
 		local Command =
 			(IsC and tup.getconfig('CCOMPILERBIN') or tup.getconfig('COMPILERBIN')) ..
 			UseBuildFlags .. ' -c -o ' .. Output .. ' ' .. Source ..
@@ -133,17 +141,9 @@ Define.Executable = Target(function(Arguments)
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
 		Inputs = Inputs:Form()
-		local Command
-		if IsDebug()
-		then
-			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O0 -ggdb ' ..
-				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
-				' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
-		else
-			Command = tup.getconfig('LINKERBIN') .. ' -Wall -Werror -pedantic -O3 ' ..
-				'-o ' .. Output .. ' ' .. tostring(Inputs) ..
-				' ' .. (Arguments.LinkFlags or '') ..  ' ' .. tup.getconfig('LINKFLAGS')
-		end
+		local Command = tup.getconfig('LINKERBIN') .. LinkFlags ..
+			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
+			' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
 		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
 	end
 	return Item(Output)
