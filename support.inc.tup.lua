@@ -52,14 +52,14 @@ elseif (tup.getconfig 'PLATFORM' == 'arch64') or
 then
 	if IsDebug()
 	then BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="."\''
-	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. Info.PackageName .. '"\''
+	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. Info.ProjectName .. '"\''
 	end
 end
 if IsDebug()
-then 
+then
 	BuildFlags = BuildFlags .. ' -O0 -ggdb'
 	LinkFlags = LinkFlags .. ' -O0 -ggdb'
-else 
+else
 	BuildFlags = BuildFlags .. ' -O3 -DNDEBUG'
 	LinkFlags = LinkFlags .. ' -O3'
 end
