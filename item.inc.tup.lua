@@ -19,7 +19,10 @@ local ExtendItem = function(Method, Data, Parent)
 	if not Data then error('Invalid argument') end
 	if type(Data) ~= 'table'
 	then
-		Data = (not IsTopLevel()) and (tup.getcwd() .. '/' .. tostring(Data)) or tostring(Data)
+		local StringData = tostring(Data)
+		if IsTopLevel() or (StringData:sub(-1) == '/') then Data = StringData
+		else Data = tup.getcwd() .. '/' .. tostring(Data)
+		end
 	end
 	local Instance = { Method = Method, Data = Data, Parent = Parent }
 	setmetatable(Instance, getmetatable(Parent))

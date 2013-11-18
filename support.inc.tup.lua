@@ -99,6 +99,19 @@ Define.Raw = Target(function(Arguments)
 	return Arguments.Outputs
 end)
 
+Define.Write = Target(function(Arguments)
+	if IsTopLevel()
+	then
+		local Output = Arguments.Output or Item()
+		tup.definerule
+		{
+			outputs = Arguments.Output:Form():Extract('Filename'),
+			command = 'cat > ' .. tostring(Arguments.Output) .. ' <<\'FOOGWAR\'\n' .. Arguments.Text .. '\nFOOGWAR'
+		}
+	end
+	return Arguments.Output
+end)
+
 Define.Object = Target(function(Arguments)
 	local Source = tostring(Arguments.Source)
 	local Output = tup.base(Source) .. '.o'
@@ -152,7 +165,7 @@ end)
 Define.Test = Target(function(Arguments)
 	local Executable = tostring(Arguments.Executable:Form())
 	local Output = Executable .. '.results.txt'
-	if IsTopLevel()
+	if IsTopLevel() and (tup.getconfig 'TEST' ~= 'false')
 	then
 		local Inputs = Arguments.Executable
 		if Arguments.Inputs then Inputs = Inputs:Include(Arguments.Inputs) end
