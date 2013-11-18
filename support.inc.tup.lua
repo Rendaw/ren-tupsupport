@@ -134,6 +134,7 @@ Define.Object = Target(function(Arguments)
 end)
 
 Define.Objects = Target(function(Arguments)
+	if not Arguments.Sources then return Item() end
 	local Sources = Arguments.Sources:Form()
 	local Outputs = Item()
 	for Index, Source in ipairs(Sources)
@@ -155,6 +156,27 @@ Define.Executable = Target(function(Arguments)
 		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
 		Inputs = Inputs:Form()
 		local Command = tup.getconfig('LINKERBIN') .. LinkFlags ..
+			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
+			' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
+		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
+	end
+	return Item(Output)
+end)
+
+Define.Library = Target(function(Arguments)
+	local Output = Arguments.Name
+	if tup.getconfig 'PLATFORM' == 'windows'
+	then
+		Output = Output .. '.dll'
+	else
+		Output = Output .. '.so'
+	end
+	if IsTopLevel()
+	then
+		local Inputs = Define.Objects(Arguments)
+		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
+		Inputs = Inputs:Form()
+		local Command = tup.getconfig('LINKERBIN') .. ' -shared' .. LinkFlags ..
 			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
 			' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
 		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
