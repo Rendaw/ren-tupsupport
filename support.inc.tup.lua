@@ -57,8 +57,16 @@ then
 end
 if IsDebug()
 then
-	BuildFlags = BuildFlags .. ' -O0 -ggdb'
-	LinkFlags = LinkFlags .. ' -O0 -ggdb'
+	BuildFlags = BuildFlags .. ' -O0'
+	LinkFlags = LinkFlags .. ' -O0'
+	if tup.getconfig 'PLATFORM' == 'windows'
+	then 
+		LinkFlags = LinkFlags .. ' -g'
+		BuildFlags = BuildFlags .. ' -g'
+	else 
+		LinkFlags = LinkFlags .. ' -ggdb'
+		BuildFlags = BuildFlags .. ' -ggdb'
+	end
 else
 	BuildFlags = BuildFlags .. ' -O3 -DNDEBUG'
 	LinkFlags = LinkFlags .. ' -O3'
