@@ -32,7 +32,7 @@ end
 if tup.getconfig 'PLATFORM' ~= 'windows'
 	then tup.export 'LD_LIBRARY_PATH' end
 
-local CXXBuildFlags = ' -std=c++11'
+local CXXBuildFlags = ' -std=c++1y'
 local CBuildFlags = ''
 local BuildFlags = ' -Wall -pedantic'
 local LinkFlags = ' -Wall -Werror -pedantic'
