@@ -1,5 +1,3 @@
-tup.include '../info.inc.lua'
-
 tup.include 'luatweaks.inc.tup.lua'
 tup.include 'mask.inc.tup.lua'
 tup.include 'item.inc.tup.lua'
@@ -36,6 +34,7 @@ local CXXBuildFlags = ' -std=c++1y'
 local CBuildFlags = ''
 local BuildFlags = ' -Wall -pedantic'
 local LinkFlags = ' -Wall -Werror -pedantic'
+local LibraryBuildFlags = ''
 if tup.getconfig 'COMPILER' == 'clang' then
 	BuildFlags = BuildFlags .. ' -Werror'
 else
@@ -50,9 +49,10 @@ elseif (tup.getconfig 'PLATFORM' == 'arch64') or
 	(tup.getconfig 'PLATFORM' == 'ubuntu') or
 	(tup.getconfig 'PLATFORM' == 'ubuntu64')
 then
+	LibraryBuildFlags = LibraryBuildFlags .. ' -fPIC'
 	if IsDebug()
 	then BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="."\''
-	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. Info.ProjectName .. '"\''
+	else BuildFlags = BuildFlags .. ' \'-DRESOURCELOCATION="/usr/share/' .. ProjectName .. '"\''
 	end
 end
 if IsDebug()
@@ -128,6 +128,7 @@ Define.Object = Target(function(Arguments)
 		local IsC = Source:match('%.c$')
 		local UseBuildFlags =
 			(IsC and CBuildFlags or CXXBuildFlags) ..
+			(Arguments.IsLibrary and LibraryBuildFlags or '') ..
 			BuildFlags .. ' ' .. tup.getconfig('BUILDFLAGS')
 		local Command =
 			(IsC and tup.getconfig('CCOMPILERBIN') or tup.getconfig('COMPILERBIN')) ..
@@ -181,6 +182,7 @@ Define.Library = Target(function(Arguments)
 	end
 	if IsTopLevel()
 	then
+		Arguments.IsLibrary = true
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
 		Inputs = Inputs:Form()
