@@ -153,6 +153,30 @@ Define.Objects = Target(function(Arguments)
 	return Outputs
 end)
 
+local Directory = function(Input)
+	return Input:gsub('/[^/]+$', '')
+end
+
+local FormatLocalLibraries = function(Arguments)
+	if tup.getconfig 'PLATFORM' ~= 'windows'
+	then
+		if Arguments.LocalLibraries
+		then
+			local Flags = ''
+			for Index, Library in ipairs(Arguments.LocalLibraries:Form():Extract('Filename'))
+			do
+				Flags = Flags .. ' -L' .. Directory(Library) .. ' -l' .. tup.base(Library):gsub('^lib', '')
+				print(Flags)
+			end
+			return Flags, Arguments.LocalLibraries
+		else
+			return nil, nil
+		end
+	else
+		return nil, Arguments.LocalLibraries
+	end
+end
+
 Define.Executable = Target(function(Arguments)
 	local Output = Arguments.Name
 	if tup.getconfig 'PLATFORM' == 'windows'
@@ -163,11 +187,20 @@ Define.Executable = Target(function(Arguments)
 	then
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Arguments.Objects + Inputs end
-		Inputs = Inputs:Form()
+		LocalLibraryFlags, LocalLibraries = FormatLocalLibraries(Arguments)
+		local ExplicitInputs = Inputs
+		if LocalLibraries then Inputs = Inputs + LocalLibraries end
 		local Command = tup.getconfig('LINKERBIN') .. LinkFlags ..
-			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
-			' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
-		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
+			' -o ' .. Output .. ' ' .. tostring(ExplicitInputs:Form()) ..
+			' ' .. (Arguments.LinkFlags or '') .. 
+			' ' .. (LocalLibraryFlags or '') ..
+			' ' .. tup.getconfig('LINKFLAGS')
+		tup.definerule
+		{
+			inputs = Inputs:Form():Extract('Filename'), 
+			outputs = {Output}, 
+			command = Command
+		}
 	end
 	return Item(Output)
 end)
@@ -185,11 +218,20 @@ Define.Library = Target(function(Arguments)
 		Arguments.IsLibrary = true
 		local Inputs = Define.Objects(Arguments)
 		if Arguments.Objects then Inputs = Arguments.Objects + Inputs end
-		Inputs = Inputs:Form()
+		LocalLibraryFlags, LocalLibraries = FormatLocalLibraries(Arguments)
+		local ExplicitInputs = Inputs
+		if LocalLibraries then Inputs = Inputs + LocalLibraries end
 		local Command = tup.getconfig('LINKERBIN') .. ' -shared' .. LinkFlags ..
-			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
-			' ' .. (Arguments.LinkFlags or '') .. ' ' .. tup.getconfig('LINKFLAGS')
-		tup.definerule{inputs = Inputs:Extract('Filename'), outputs = {Output}, command = Command}
+			' -o ' .. Output .. ' ' .. tostring(ExplicitInputs:Form()) ..
+			' ' .. (Arguments.LinkFlags or '') .. 
+			' ' .. (LocalLibraryFlags or '') ..
+			' ' .. tup.getconfig('LINKFLAGS')
+		tup.definerule
+		{
+			inputs = Inputs:Form():Extract('Filename'), 
+			outputs = {Output}, 
+			command = Command
+		}
 	end
 	return Item(Output)
 end)
