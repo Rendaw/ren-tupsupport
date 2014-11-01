@@ -162,7 +162,7 @@ Define.Executable = Target(function(Arguments)
 	if IsTopLevel()
 	then
 		local Inputs = Define.Objects(Arguments)
-		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
+		if Arguments.Objects then Inputs = Arguments.Objects + Inputs end
 		Inputs = Inputs:Form()
 		local Command = tup.getconfig('LINKERBIN') .. LinkFlags ..
 			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
@@ -178,13 +178,13 @@ Define.Library = Target(function(Arguments)
 	then
 		Output = Output .. '.dll'
 	else
-		Output = Output .. '.so'
+		Output = 'lib' .. Output .. '.so'
 	end
 	if IsTopLevel()
 	then
 		Arguments.IsLibrary = true
 		local Inputs = Define.Objects(Arguments)
-		if Arguments.Objects then Inputs = Inputs:Include(Arguments.Objects) end
+		if Arguments.Objects then Inputs = Arguments.Objects + Inputs end
 		Inputs = Inputs:Form()
 		local Command = tup.getconfig('LINKERBIN') .. ' -shared' .. LinkFlags ..
 			' -o ' .. Output .. ' ' .. tostring(Inputs) ..
