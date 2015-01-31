@@ -1,3 +1,56 @@
+--[[
+
+------------------------------- General
+DoOnce LUA_FILE 
+	Includes and runs LUA_FILE.  LUA_FILE should be relative to the tup root and have no leading slash.  Guards against re-includes.
+
+------------------------------- Path management
+Item()
+Item FILENAME 
+	Constructs an item, optionally initializing it with one value (FILENAME).
+Item operator + FILENAME|ITEM|GLOB
+	Returns a new item with the operand included.  GLOB is an expression like '*.cxx'.
+
+------------------------------- Rule definition
+All Define functions return Items.  Define functions may grab relevant config variables from tup.config in addition to explicit arguments.
+
+Output = Define.Raw { Inputs = ITEM, Outputs = ITEM, Command = STRING }
+	Creates a rule that runs an arbitrary command, Command.
+
+Output = Define.Lua { Script = ITEM, Inputs = ITEM, Outputs = ITEM, Arguments = STRING }
+	- Inputs (optional)
+	- Arguments (optional)
+	Creates a rule that runs a lua script Script, passing Arguments.
+
+Output = Define.Text { Output = ITEM, Text = STRING }
+	Creates a rule that generates a text file with the contents Text.
+
+Object = Define.Object { Source = ITEM, IsLibrary = BOOL, BuildFlags = STRING, BuildExtras = ITEM }
+	- Source (required) - Source file to compile.
+	- IsLibrary (optional) - Indicates that the object will be used in a library.  If true, includes LibraryBuildFlags.
+	- BuildFlags (optional) - Flags to use when compiling.
+	- BuildExtras (optional) - Extra input dependencies.  This may be things like generated headers.
+	Compiles a c/c++ source into an object.
+
+Objects = Define.Objects  { Sources = ITEM, arguments from Define.Object }
+	- Sources (required) - Source files to compile.
+	Compiles multiple c/c++ sources into objects.  Each source individually and the remaining arguments are passed to Define.Object.
+
+Executable = Define.Executable { Name = STRING, Objects = ITEM, LinkFlags = STRING, arguments from Define.Objects }
+	- Name (required) - Name of the executable.  An extension is added automatically if required.
+	- Objects (optional) - Objects to include when linking.
+	- LinkFlags (optional) - Flags to use when linking.
+	Creates an executable.  Objects to link can be passed in explicitly, or Sources can be passed in which will be compiled and then linked.
+	
+Library = Define.Library { Name = STRING, Objects = ITEM, LinkFlags = STRING, arguments from Define.Objects }
+	- Name (required) - Name of the library.  A prefix and extension are added automatically if required.
+	- Objects (optional) - Objects to include when linking.
+	- LinkFlags (optional) - Flags to use when linking.
+	Creates a dynamic library.  Objects to link can be passed in explicitly, or Sources can be passed in which will be compiled and then linked.
+	
+]]
+
+
 tup.include 'luatweaks.inc.tup.lua'
 tup.include 'mask.inc.tup.lua'
 tup.include 'item.inc.tup.lua'
