@@ -248,6 +248,10 @@ Define.Executable = Target(function(Arguments)
 			' ' .. (Arguments.LinkFlags or '') .. 
 			' ' .. (LocalLibraryFlags or '') ..
 			' ' .. tup.getconfig('LINKFLAGS')
+		if tup.getconfig 'PLATFORM' == 'osx'
+		then
+			Command = Command .. '; rm -rf ' .. Output .. '.dSYM'
+		end
 		tup.definerule
 		{
 			inputs = Inputs:Form():Extract('Filename'), 
